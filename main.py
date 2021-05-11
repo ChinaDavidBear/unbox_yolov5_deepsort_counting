@@ -1,5 +1,4 @@
 import numpy as np
-
 import tracker
 from detector import Detector
 import cv2
@@ -63,7 +62,7 @@ if __name__ == '__main__':
     detector = Detector()
 
     # 打开视频
-    capture = cv2.VideoCapture('./video/test.mp4')
+    capture = cv2.VideoCapture('https://vd2.bdstatic.com/mda-jkrnestf34a89fr9/sc/mda-jkrnestf34a89fr9.mp4?v_from_s=nj_haokan_4469&auth_key=1620700064-0-0-d4622ad048b009fc10e17f87c2dcd360&bcevod_channel=searchbox_feed&pd=1&pt=3&abtest=3000165_1')
     # capture = cv2.VideoCapture('/mnt/datasets/datasets/towncentre/TownCentreXVID.avi')
 
     while True:
