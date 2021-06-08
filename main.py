@@ -4,6 +4,7 @@ import tracker
 from detector import Detector
 import cv2
 import time
+import uuid
 from PIL import Image, ImageDraw, ImageFont
 
 
@@ -81,7 +82,7 @@ if __name__ == '__main__':
     capture = cv2.VideoCapture(
         'https://vd2.bdstatic.com/mda-ja9mpb558wv9hr5g/sc/mda-ja9mpb558wv9hr5g.mp4?v_from_s=nj_haokan_4469&auth_key=1623135930-0-0-acf46fe471fb13eb3c2f23fa7d8e615c&bcevod_channel=searchbox_feed&pd=1&pt=3&abtest=3000165_1')
     # capture = cv2.VideoCapture('/mnt/datasets/datasets/towncentre/TownCentreXVID.avi')
-
+    modelids = []
     while True:
         # 读取每帧图片
         _, im = capture.read()
@@ -100,19 +101,21 @@ if __name__ == '__main__':
 
             # 画框
             # 撞线检测点，(x1，y1)，y方向偏移比例 0.0~1.0
-            output_image_frame = tracker.draw_bboxes(im, list_bboxs, line_thickness=None)
+            # output_image_frame = tracker.draw_bboxes(im, list_bboxs, line_thickness=None)
             pass
         else:
             # 如果画面中 没有bbox
             output_image_frame = im
+            pass
         pass
 
         # 输出图片
-        output_image_frame = cv2.add(output_image_frame, color_polygons_image)
-        modelids=[]
-        list_overlapping_yellow_polygon=[]
-        list_overlapping_blue_polygon=[]
+        output_image_frame = cv2.add(im, color_polygons_image)
+
+        list_overlapping_yellow_polygon = []
+        list_overlapping_blue_polygon = []
         if len(list_bboxs) > 0:
+            wfBox=[]
             # ----------------------判断撞线----------------------
             for item_bbox in list_bboxs:
 
@@ -127,15 +130,27 @@ if __name__ == '__main__':
 
                 if polygon_mask_blue_and_yellow[y, x] == 1:
                     list_overlapping_yellow_polygon.append(track_id)
+                    wfBox.append(item_bbox)
                     pass
                 elif polygon_mask_blue_and_yellow[y, x] == 2:
                     list_overlapping_blue_polygon.append(track_id)
+                    wfBox.append(item_bbox)
                     pass
                 else:
                     pass
                 pass
             pass
-
+            if len(wfBox) > 0:
+                # wfBox = tracker.update(wfBox, im)
+                # 画框
+                # 撞线检测点，(x1，y1)，y方向偏移比例 0.0~1.0
+                output_image_frame = tracker.draw_bboxes(output_image_frame, wfBox, line_thickness=None)
+                pass
+            else:
+                # 如果画面中 没有bbox
+                # output_image_frame = im
+                pass
+            pass
             # ----------------------清除无用id----------------------
             list_overlapping_all = list_overlapping_yellow_polygon + list_overlapping_blue_polygon
             for id1 in list_overlapping_all:
@@ -173,13 +188,17 @@ if __name__ == '__main__':
 
         text_draw = '陕西省西安市太白南路十字001:' + time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
         output_image_frame = cv2ImgAddText(output_image_frame, text_draw, 10, 0, (255, 255, 255), 20)
-        output_image_frame = cv2ImgAddText(output_image_frame, '区域1违法对象:'+str(list_overlapping_blue_polygon), 10, 20, (255, 255, 255), 20)
-        output_image_frame = cv2ImgAddText(output_image_frame, '区域2违法对象:'+str(list_overlapping_yellow_polygon), 10, 40, (255, 255, 255), 20)
+        output_image_frame = cv2ImgAddText(output_image_frame, '区域1违法对象:' + str(list_overlapping_blue_polygon), 10, 20,
+                                           (255, 255, 255), 20)
+        output_image_frame = cv2ImgAddText(output_image_frame, '区域2违法对象:' + str(list_overlapping_yellow_polygon), 10,
+                                           40, (255, 255, 255), 20)
         cv2.imshow('Shannxi Taibai 001', output_image_frame)
-        cv2.imwrite(text_draw+'.png',output_image_frame)
         cv2.waitKey(1)
-
         pass
+        all = list_overlapping_blue_polygon + list_overlapping_yellow_polygon
+        if (modelids != all):
+            cv2.imwrite("E:\\\Picture\\pictures\\" + str(uuid.uuid1()).replace("-", "") + '.png',output_image_frame)
+            modelids = all
     pass
 
     capture.release()
