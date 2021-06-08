@@ -38,10 +38,10 @@ def draw_bboxes(image, bboxes, line_thickness):
         cv2.putText(image, '{} ID-{}'.format(cls_id, pos_id), (c1[0], c1[1] - 2), 0, line_thickness / 3,
                     [225, 255, 255], thickness=font_thickness, lineType=cv2.LINE_AA)
 
-        list_pts.append([check_point_x-point_radius, check_point_y-point_radius])
-        list_pts.append([check_point_x-point_radius, check_point_y+point_radius])
-        list_pts.append([check_point_x+point_radius, check_point_y+point_radius])
-        list_pts.append([check_point_x+point_radius, check_point_y-point_radius])
+        list_pts.append([check_point_x - point_radius, check_point_y - point_radius])
+        list_pts.append([check_point_x - point_radius, check_point_y + point_radius])
+        list_pts.append([check_point_x + point_radius, check_point_y + point_radius])
+        list_pts.append([check_point_x + point_radius, check_point_y - point_radius])
 
         ndarray_pts = np.array(list_pts, np.int32)
 
@@ -63,6 +63,7 @@ def update(bboxes, image):
                 int((x1 + x2) / 2), int((y1 + y2) / 2),
                 x2 - x1, y2 - y1
             ]
+            ##车的问题
             bbox_xywh.append(obj)
             confs.append(conf)
 

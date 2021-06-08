@@ -1,7 +1,25 @@
+# -*-coding:utf-8-*-
 import numpy as np
 import tracker
 from detector import Detector
 import cv2
+import time
+from PIL import Image, ImageDraw, ImageFont
+
+
+def cv2ImgAddText(img, text, left, top, textColor=(0, 255, 0), textSize=20):
+    if (isinstance(img, np.ndarray)):  # 判断是否OpenCV图片类型
+        img = Image.fromarray(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
+    # 创建一个可以在给定图像上绘图的对象
+    draw = ImageDraw.Draw(img)
+    # 字体的格式
+    fontStyle = ImageFont.truetype(
+        "font/simsun.ttc", textSize, encoding="utf-8")
+    # 绘制文本
+    draw.text((left, top), text, textColor, font=fontStyle)
+    # 转换回OpenCV格式
+    return cv2.cvtColor(np.asarray(img), cv2.COLOR_RGB2BGR)
+
 
 if __name__ == '__main__':
 
@@ -9,18 +27,16 @@ if __name__ == '__main__':
     mask_image_temp = np.zeros((1080, 1920), dtype=np.uint8)
 
     # 初始化2个撞线polygon
-    list_pts_blue = [[204, 305], [227, 431], [605, 522], [1101, 464], [1900, 601], [1902, 495], [1125, 379], [604, 437],
-                     [299, 375], [267, 289]]
+    list_pts_blue = [[780, 171], [858, 183], [820, 513], [660, 470]]
     ndarray_pts_blue = np.array(list_pts_blue, np.int32)
     polygon_blue_value_1 = cv2.fillPoly(mask_image_temp, [ndarray_pts_blue], color=1)
     polygon_blue_value_1 = polygon_blue_value_1[:, :, np.newaxis]
 
     # 填充第二个polygon
     mask_image_temp = np.zeros((1080, 1920), dtype=np.uint8)
-    list_pts_yellow = [[181, 305], [207, 442], [603, 544], [1107, 485], [1898, 625], [1893, 701], [1101, 568],
-                       [594, 637], [118, 483], [109, 303]]
+    list_pts_yellow = [[910, 575], [1915, 897], [1920, 1080], [885, 1080]]
     ndarray_pts_yellow = np.array(list_pts_yellow, np.int32)
-    polygon_yellow_value_2 = cv2.fillPoly(mask_image_temp, [ndarray_pts_yellow], color=2)
+    polygon_yellow_value_2 = cv2.fillPoly(mask_image_temp, [ndarray_pts_yellow], color=1)
     polygon_yellow_value_2 = polygon_yellow_value_2[:, :, np.newaxis]
 
     # 撞线检测用mask，包含2个polygon，（值范围 0、1、2），供撞线计算使用
@@ -30,12 +46,12 @@ if __name__ == '__main__':
     polygon_mask_blue_and_yellow = cv2.resize(polygon_mask_blue_and_yellow, (960, 540))
 
     # 蓝 色盘 b,g,r
-    blue_color_plate = [255, 0, 0]
+    blue_color_plate = [0, 0, 200]
     # 蓝 polygon图片
     blue_image = np.array(polygon_blue_value_1 * blue_color_plate, np.uint8)
 
     # 黄 色盘
-    yellow_color_plate = [0, 255, 255]
+    yellow_color_plate = [0, 0, 200]
     # 黄 polygon图片
     yellow_image = np.array(polygon_yellow_value_2 * yellow_color_plate, np.uint8)
 
@@ -62,7 +78,8 @@ if __name__ == '__main__':
     detector = Detector()
 
     # 打开视频
-    capture = cv2.VideoCapture('https://vd2.bdstatic.com/mda-jkrnestf34a89fr9/sc/mda-jkrnestf34a89fr9.mp4?v_from_s=nj_haokan_4469&auth_key=1620700064-0-0-d4622ad048b009fc10e17f87c2dcd360&bcevod_channel=searchbox_feed&pd=1&pt=3&abtest=3000165_1')
+    capture = cv2.VideoCapture(
+        'https://vd2.bdstatic.com/mda-ja9mpb558wv9hr5g/sc/mda-ja9mpb558wv9hr5g.mp4?v_from_s=nj_haokan_4469&auth_key=1623135930-0-0-acf46fe471fb13eb3c2f23fa7d8e615c&bcevod_channel=searchbox_feed&pd=1&pt=3&abtest=3000165_1')
     # capture = cv2.VideoCapture('/mnt/datasets/datasets/towncentre/TownCentreXVID.avi')
 
     while True:
@@ -92,10 +109,13 @@ if __name__ == '__main__':
 
         # 输出图片
         output_image_frame = cv2.add(output_image_frame, color_polygons_image)
-
+        modelids=[]
+        list_overlapping_yellow_polygon=[]
+        list_overlapping_blue_polygon=[]
         if len(list_bboxs) > 0:
             # ----------------------判断撞线----------------------
             for item_bbox in list_bboxs:
+
                 x1, y1, x2, y2, _, track_id = item_bbox
 
                 # 撞线检测点，(x1，y1)，y方向偏移比例 0.0~1.0
@@ -106,53 +126,14 @@ if __name__ == '__main__':
                 x = x1
 
                 if polygon_mask_blue_and_yellow[y, x] == 1:
-                    # 如果撞 蓝polygon
-                    if track_id not in list_overlapping_blue_polygon:
-                        list_overlapping_blue_polygon.append(track_id)
+                    list_overlapping_yellow_polygon.append(track_id)
                     pass
-
-                    # 判断 黄polygon list 里是否有此 track_id
-                    # 有此 track_id，则 认为是 外出方向
-                    if track_id in list_overlapping_yellow_polygon:
-                        # 外出+1
-                        up_count += 1
-
-                        print('up count:', up_count, ', up id:', list_overlapping_yellow_polygon)
-
-                        # 删除 黄polygon list 中的此id
-                        list_overlapping_yellow_polygon.remove(track_id)
-
-                        pass
-                    else:
-                        # 无此 track_id，不做其他操作
-                        pass
-
                 elif polygon_mask_blue_and_yellow[y, x] == 2:
-                    # 如果撞 黄polygon
-                    if track_id not in list_overlapping_yellow_polygon:
-                        list_overlapping_yellow_polygon.append(track_id)
-                    pass
-
-                    # 判断 蓝polygon list 里是否有此 track_id
-                    # 有此 track_id，则 认为是 进入方向
-                    if track_id in list_overlapping_blue_polygon:
-                        # 进入+1
-                        down_count += 1
-
-                        print('down count:', down_count, ', down id:', list_overlapping_blue_polygon)
-
-                        # 删除 蓝polygon list 中的此id
-                        list_overlapping_blue_polygon.remove(track_id)
-
-                        pass
-                    else:
-                        # 无此 track_id，不做其他操作
-                        pass
+                    list_overlapping_blue_polygon.append(track_id)
                     pass
                 else:
                     pass
                 pass
-
             pass
 
             # ----------------------清除无用id----------------------
@@ -186,17 +167,16 @@ if __name__ == '__main__':
             # 如果图像中没有任何的bbox，则清空list
             list_overlapping_blue_polygon.clear()
             list_overlapping_yellow_polygon.clear()
+
             pass
         pass
 
-        text_draw = 'DOWN: ' + str(down_count) + \
-                    ' , UP: ' + str(up_count)
-        output_image_frame = cv2.putText(img=output_image_frame, text=text_draw,
-                                         org=draw_text_postion,
-                                         fontFace=font_draw_number,
-                                         fontScale=1, color=(255, 255, 255), thickness=2)
-
-        cv2.imshow('demo', output_image_frame)
+        text_draw = '陕西省西安市太白南路十字001:' + time.strftime('%Y-%m-%d %H:%M:%S', time.localtime(time.time()))
+        output_image_frame = cv2ImgAddText(output_image_frame, text_draw, 10, 0, (255, 255, 255), 20)
+        output_image_frame = cv2ImgAddText(output_image_frame, '区域1违法对象:'+str(list_overlapping_blue_polygon), 10, 20, (255, 255, 255), 20)
+        output_image_frame = cv2ImgAddText(output_image_frame, '区域2违法对象:'+str(list_overlapping_yellow_polygon), 10, 40, (255, 255, 255), 20)
+        cv2.imshow('Shannxi Taibai 001', output_image_frame)
+        cv2.imwrite(text_draw+'.png',output_image_frame)
         cv2.waitKey(1)
 
         pass
